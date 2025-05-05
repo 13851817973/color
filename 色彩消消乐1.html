@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初级消消乐</title>
+    <style>
+        /* 细边框iPhone样式 */
+        .iphone-container {
+            width: 375px;
+            height: 812px;
+            margin: 20px auto;
+            position: relative;
+            background: #1a1a1a;
+            border-radius: 40px;
+            padding: 10px;
+            box-shadow: 
+                0 0 0 5px #1a1a1a,
+                0 0 0 7px #3a3a3a,
+                0 0 30px rgba(0, 0, 0, 0.6);
+        }
+        
+        /* 屏幕凹槽 */
+        .notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 130px;
+            height: 25px;
+            background: #1a1a1a;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            z-index: 10;
+        }
+        
+        /* 屏幕内容 */
+        .screen {
+            width: 100%;
+            height: 100%;
+            background-color: rgb(198, 177, 238);
+            border-radius: 35px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        
+        h1 {
+            color: white;
+            font-size: 3em;
+            font-weight: bold;
+            margin: 60px 0 30px; /* 增大上边距 */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+        }
+        
+        .game-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            width: 250px;
+            height: 250px;
+            margin: 30px auto 0; /* 调整上边距 */
+            gap: 20px;
+        }
+        
+        .bubble {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 
+                inset 0 -3px 10px rgba(255, 255, 255, 0.7),
+                inset 0 3px 10px rgba(0, 0, 0, 0.2),
+                0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            justify-self: center;
+        }
+        
+        .bubble::after {
+            content: '';
+            position: absolute;
+            top: 10%;
+            left: 20%;
+            width: 30%;
+            height: 30%;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            filter: blur(5px);
+        }
+        
+        .bubble:hover {
+            transform: scale(1.05);
+        }
+        
+        .bubble.selected {
+            transform: scale(1.1);
+            box-shadow: 
+                inset 0 -3px 10px rgba(255, 255, 255, 0.7),
+                inset 0 3px 10px rgba(0, 0, 0, 0.2),
+                0 0 0 5px rgba(255, 255, 255, 0.8),
+                0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .bubble.matched {
+            visibility: hidden;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.5s ease;
+        }
+        
+        .success-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+            display: none;
+            width: 80%;
+        }
+        
+        .success-message h2 {
+            color: #00FF00;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+        
+        .success-message p {
+            font-size: 1.1em;
+            color: #333;
+        }
+        
+        .restart-btn {
+            background-color: #00FF00;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 0.95em;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.3s;
+        }
+        
+        .restart-btn:hover {
+            background-color: #00CC00;
+        }
+        
+        /* 底部Home指示条 */
+        .home-indicator {
+            width: 100px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 2px;
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="iphone-container">
+        <div class="notch"></div>
+        <div class="screen">
+            <h1>初级</h1>
+            
+            <div class="game-container" id="gameContainer"></div>
+            
+            <div class="success-message" id="successMessage">
+                <h2>恭喜你挑战成功!</h2>
+                <p id="completionTime"></p>
+                <button class="restart-btn" id="restartBtn">再玩一次</button>
+            </div>
+            
+            <div class="home-indicator"></div>
+        </div>
+    </div>
+    
+    <!-- 泡泡点击音效 -->
+    <audio id="bubbleSound" src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU..."></audio>
+    
+    <script>
+        // 音效元素
+        const bubbleSound = document.getElementById('bubbleSound');
+        
+        // 颜色定义
+        const colors = {
+            red: {
+                value: '#FF0000',
+                name: '红色'
+            },
+            green: {
+                value: '#00FF00',
+                name: '绿色'
+            }
+        };
+        
+        // 5岁小女孩语音合成函数
+        function speakLike5YearOldGirl(text) {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                
+                const voices = speechSynthesis.getVoices();
+                const childVoice = voices.find(voice => 
+                    voice.name.includes('Child') || 
+                    voice.name.includes('Xiaoxiao') ||
+                    voice.name.includes('TingTing')
+                );
+                
+                if (childVoice) {
+                    utterance.voice = childVoice;
+                } else {
+                    utterance.pitch = 1.5;
+                    utterance.rate = 0.9;
+                }
+                
+                speechSynthesis.speak(utterance);
+            }
+        }
+        
+        speechSynthesis.onvoiceschanged = function() {
+            console.log('语音列表已加载');
+        };
+        
+        let gameState = {
+            firstSelection: null,
+            secondSelection: null,
+            lockBoard: false,
+            matchedPairs: 0,
+            startTime: null,
+            timer: null
+        };
+        
+        function initGame() {
+            const gameContainer = document.getElementById('gameContainer');
+            gameContainer.innerHTML = '';
+            
+            const positions = [
+                { color: colors.red, position: 'top-left' },
+                { color: colors.green, position: 'top-right' },
+                { color: colors.green, position: 'bottom-left' },
+                { color: colors.red, position: 'bottom-right' }
+            ];
+            
+            positions.forEach((item, index) => {
+                const bubble = document.createElement('div');
+                bubble.classList.add('bubble');
+                bubble.style.backgroundColor = item.color.value;
+                bubble.dataset.color = item.color.value;
+                bubble.dataset.colorName = item.color.name;
+                bubble.dataset.id = index;
+                
+                bubble.addEventListener('click', () => {
+                    bubbleSound.currentTime = 0;
+                    bubbleSound.play();
+                    speakLike5YearOldGirl(item.color.name);
+                    selectBubble(bubble);
+                });
+                
+                gameContainer.appendChild(bubble);
+            });
+            
+            gameState = {
+                firstSelection: null,
+                secondSelection: null,
+                lockBoard: false,
+                matchedPairs: 0,
+                startTime: new Date(),
+                timer: null
+            };
+            
+            document.getElementById('successMessage').style.display = 'none';
+        }
+        
+        function selectBubble(bubble) {
+            if (gameState.lockBoard || bubble === gameState.firstSelection || bubble.classList.contains('matched')) {
+                return;
+            }
+            
+            bubble.classList.add('selected');
+            
+            if (!gameState.firstSelection) {
+                gameState.firstSelection = bubble;
+                return;
+            }
+            
+            gameState.secondSelection = bubble;
+            checkForMatch();
+        }
+        
+        function checkForMatch() {
+            const isMatch = gameState.firstSelection.dataset.color === gameState.secondSelection.dataset.color;
+            
+            if (isMatch) {
+                disableBubbles();
+                gameState.matchedPairs++;
+                
+                if (gameState.matchedPairs === 2) {
+                    speakLike5YearOldGirl('太棒啦！你都找到啦！');
+                    endGame();
+                }
+            } else {
+                speakLike5YearOldGirl('再试试看吧！');
+                unflipBubbles();
+            }
+        }
+        
+        function disableBubbles() {
+            gameState.firstSelection.classList.add('matched');
+            gameState.secondSelection.classList.add('matched');
+            resetBoard();
+        }
+        
+        function unflipBubbles() {
+            gameState.lockBoard = true;
+            
+            setTimeout(() => {
+                gameState.firstSelection.classList.remove('selected');
+                gameState.secondSelection.classList.remove('selected');
+                resetBoard();
+            }, 1000);
+        }
+        
+        function resetBoard() {
+            [gameState.firstSelection, gameState.secondSelection] = [null, null];
+            gameState.lockBoard = false;
+        }
+        
+        function endGame() {
+            const endTime = new Date();
+            const timeDiff = endTime - gameState.startTime;
+            const seconds = Math.floor(timeDiff / 1000);
+            
+            document.getElementById('completionTime').textContent = `用时: ${seconds}秒`;
+            document.getElementById('successMessage').style.display = 'block';
+        }
+        
+        document.getElementById('restartBtn').addEventListener('click', initGame);
+        
+        function initSpeech() {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.getVoices();
+            }
+        }
+        
+        window.addEventListener('load', function() {
+            initGame();
+            initSpeech();
+        });
+    </script>
+</body>
+</html>
